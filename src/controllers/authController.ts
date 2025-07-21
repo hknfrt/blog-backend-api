@@ -7,6 +7,12 @@ import jwt from "jsonwebtoken"
 // Prisma client instance
 const prisma = new PrismaClient()
 
+
+// AuthRequest interface
+interface AuthRequest extends Request {
+    userId?:string;
+}
+
 // Register function
 export const register = async (req:Request, res:Response) => {
 
@@ -147,7 +153,43 @@ export const login = async(req:Request, res:Response) => {
 }
 
 // Get current user info 
-export const getCurrentUser = async(req:Request, res:Response) => {
+export const getUser = async(req:AuthRequest, res:Response) => {
 
-    res.json({message:"GetCurrentUser Function Response"})
-}
+    try {
+        
+        //Get userId from middleware
+        const userId = req.userId;
+
+        //Get user info
+        const user = await prisma.user.findUnique({
+            where:{id:userId},
+            select:{
+                id:true,
+                email:true,
+                username:true,
+                createdAt:true,
+                updatedAt:true
+            }
+        });
+
+        // check user
+        if(!user) {
+            return res.status(404).json({
+                error: "User cannot found"
+            });
+        }
+
+        // Return User info
+        res.status(200).json({
+            message:"User info",
+            user
+        })
+
+    } catch (error) {
+        console.error("GetUser error: ", error)
+        res.status(500).json({
+            error:"Server cannot found"
+        });
+        
+    }
+};
