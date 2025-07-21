@@ -10,6 +10,6 @@ router.post("/register", register)
 router.post("/login", login)
 
 // Protected routes
-router.get("/me", getUser)
+router.get("/me", authenticateToken,getUser)
 
 export default router;
