@@ -304,8 +304,74 @@ export const updatePost = async (req: AuthRequest, res: Response) => {
 
 // Delete post (sadece yazı sahibi)
 export const deletePost = async (req: AuthRequest, res: Response) => {
-    // Burayı sonraki adımda dolduracağız
-    res.json({ message: "Delete post function - henüz boş" });
+   try {
+    const {id} = req.params // Post ID
+    const userId = req.userId // The userID which is comes from middleware
+
+    // Validation
+    if(!id){
+        return res.status(400).json({
+            error:"Post ID is required"
+        });
+    }
+
+    // Find post
+    const existingPost = await prisma.post.findUnique({
+        where:{id},
+        select:{
+            id:true,
+            title:true,
+            authorId:true
+        }
+    })
+
+    if(!existingPost){
+        return res.status(404).json({
+            error:"Post not found"
+        });
+    }
+
+    // AUTHORIZATION: Only post owner can delete
+    if(existingPost.authorId !==userId){
+        return res.status(403).json({
+            error:"You can only delete your own posts"
+        });
+    }
+    await prisma.post.delete({
+        where:{id}
+    });
+
+    res.status(200).json({
+        message:"Post deleted successfully",
+        deletePost:{
+            id: existingPost.id,
+            title: existingPost.title
+        }
+    });
+
+   } catch (error) {
+    console.error("Delete post error: ", error)
+    
+    // Prisma specific errors
+    if(error instanceof Prisma.PrismaClientKnownRequestError){
+        if(error.code ==="P2023"){
+            return res.status(400).json({
+                error:"Invalid post ID format"
+            });
+        }
+
+        if(error.code ==="P2025"){
+            return res.status(404).json({
+                error:"Post not found"
+            });
+        }
+    }
+
+    res.status(500).json({
+        error:"Server Error"
+    })
+    
+   }
 };
 
 // Get current user's posts (kendi yazılarını getir)
