@@ -188,8 +188,118 @@ export const getPostById = async (req: Request, res: Response) => {
 
 // Update post (sadece yazı sahibi)
 export const updatePost = async (req: AuthRequest, res: Response) => {
-    // Burayı sonraki adımda dolduracağız
-    res.json({ message: "Update post function - henüz boş" });
+   try {
+
+    const {id} = req.params; // Post ID
+    const userId = req.userId;
+    const {title, content, published} = req.body;
+
+    if(!id){
+        return res.status(400).json({
+            error:"Post ID is required"
+        });
+    }
+
+    // Find post
+    const existingPost =  await prisma.post.findUnique({
+        where:{id}
+    });
+
+    if(!existingPost){
+        return res.status(404).json({
+            error:"Post not found"
+        });
+    }
+
+    // AUTHORIZATION: Only post owner can edit
+    if(existingPost.authorId !==userId){
+        return res.status(403).json({
+            error:"You can only edit your own posts"
+        });
+    }
+
+    // Validation
+    if(title !== undefined){
+        if(typeof content !== "string" || content.trim().length<10){
+            return res.status(400).json({
+                error:"Content must be at least 10 characters"
+            });
+        }
+    }
+
+    if(published !== undefined){
+        if(typeof published !== "boolean"){
+            return res.status(400).json({
+                error:"Published field must be boolean"
+            });
+        }
+    }
+
+    // Make data ready to update
+    const updateData:any ={};
+    
+    if (title !== undefined) {
+        updateData.title = title.trim();
+    }
+    
+    if (content !== undefined) {
+        updateData.content = content.trim();
+    }
+    
+    if (published !== undefined) {
+        updateData.published = published;
+    }
+
+    // If there is no data
+    if(Object.keys(updateData).length===0){
+        return res.status(400).json({
+            error: "At least one field  (title, content or published) is required"
+        });
+    }
+
+    // Update post
+    const updatePost = await prisma.post.update({
+        where:{id},
+        data:updateData,
+        include:{
+            author:{
+                select:{
+                    id:true,
+                    username:true,
+                    email:true
+                }
+            }
+        }
+    });
+
+    res.status(200).json({
+        message:"Post updated successfully",
+        post:updatePost
+    })
+    
+   } catch (error) {
+
+    console.error("Update post error: ", error)
+
+    if(error instanceof Prisma.PrismaClientKnownRequestError){
+        if(error.code ==="P2023"){
+            return res.status(400).json({
+                error:"Invalid post ID format"
+            });
+        }
+
+        if(error.code ==="P2025"){
+            return res.status(404).json({
+                error:"Post not found"
+            });
+        }
+    }
+
+    res.status(500).json({
+        error:"Server Error"
+    })
+    
+   }
 };
 
 // Delete post (sadece yazı sahibi)
