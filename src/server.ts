@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 
+import authRoutes from "./routes/auth"
+
 
 
 dotenv.config();
@@ -18,6 +20,7 @@ app.use(morgan('combined'));
 app.use(express.json());
 
 // Routes
+app.use("/api/auth", authRoutes)
 
 
 // Health check
