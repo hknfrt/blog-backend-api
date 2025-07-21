@@ -376,6 +376,95 @@ export const deletePost = async (req: AuthRequest, res: Response) => {
 
 // Get current user's posts (kendi yazılarını getir)
 export const getMyPosts = async (req: AuthRequest, res: Response) => {
-    // Burayı sonraki adımda dolduracağız
-    res.json({ message: "Get my posts function - henüz boş" });
+    try {
+
+    const userId = req.userId;
+
+    // Query parameters (for pages)
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page-1)*limit
+
+    // Published filter
+    const publishedFilter = req.query.published as string;
+
+    // Create Where condition 
+    const whereCondition:any ={
+        authorId:userId // only for this user posts
+
+    };
+
+    // If published existing
+    if(publishedFilter ==="true"){
+        whereCondition.published =true;
+    }else if(publishedFilter ==="false"){
+        whereCondition.published =false;
+    }
+
+    // Get user's posts
+    const posts = await prisma.post.findMany({
+        where:whereCondition,
+        orderBy:{createdAt:"desc"},
+        skip:skip,
+        take:limit,
+        select:{
+            id:true,
+            title:true,
+            content:true,
+            published:true,
+            createdAt:true,
+            updatedAt:true
+        }
+    });
+
+    // Total count
+    const totalPosts = await prisma.post.count({
+        where:whereCondition
+    })
+
+    // Pagination info
+    const totalPages = Math.ceil(totalPosts/limit);
+    const hasNextPage = page<totalPages;
+    const hasPreviousPage = page >1;
+
+    // Stats
+    const publishedCount = await prisma.post.count({
+        where:{
+            authorId:userId,
+            published:true
+        }
+    });
+
+    const draftCount = await prisma.post.count({
+        where:{
+            authorId:userId,
+            published:false
+        }
+    });
+
+    res.status(200).json({
+        message:"Your post retrieved successfully",
+        posts,
+        stats:{
+            totalPosts,
+            publishedPosts:publishedCount,
+            draftPosts: draftCount
+        },
+        pagination:{
+            currentPage:page,
+            totalPages,
+            totalPosts,
+            postsPerPage:limit,
+            hasNextPage,
+            hasPreviousPage
+        }
+    });
+       
+    } catch (error) {
+        console.error("Get my posts error: ", error)
+        res.status(500).json({
+            error:"Server Error"
+        })
+        
+    }
 };
