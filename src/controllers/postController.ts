@@ -54,7 +54,7 @@ export const createPost = async (req: AuthRequest, res: Response) => {
     });
 
     res.status(201).json({
-        message:"Post create succsessfully",
+        message:"Post create successfully",
         post: newPost
     })
 
