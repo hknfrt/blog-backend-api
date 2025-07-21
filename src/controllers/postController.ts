@@ -220,9 +220,17 @@ export const updatePost = async (req: AuthRequest, res: Response) => {
 
     // Validation
     if(title !== undefined){
-        if(typeof content !== "string" || content.trim().length<10){
+        if(typeof title !== "string" || title.trim().length<3){
             return res.status(400).json({
-                error:"Content must be at least 10 characters"
+                error:"Title must be at least 3 characters"
+            });
+        }
+    }
+
+    if (content !== undefined) {
+        if (typeof content !== 'string' || content.trim().length < 10) {
+            return res.status(400).json({
+                error: "Content must be at least 10 characters"
             });
         }
     }
