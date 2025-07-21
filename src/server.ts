@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 
 import authRoutes from "./routes/auth"
+import postRoutes from "./routes/posts"
 
 
 
@@ -21,6 +22,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes)
+app.use("/api/posts", postRoutes)
 
 
 // Health check
