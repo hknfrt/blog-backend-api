@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 
 const prisma = new PrismaClient();
@@ -129,8 +129,61 @@ export const getAllPosts = async (req: Request, res: Response) => {
 
 // Get single post by ID (public)
 export const getPostById = async (req: Request, res: Response) => {
-    // Burayı sonraki adımda dolduracağız
-    res.json({ message: "Get post by ID function - henüz boş" });
+   try {
+     const {id} = req.params; // Get post ID from URL
+
+     // Input validation
+     if(!id) {
+        return res.status(400).json({
+            error:"Post ID is required"
+        });
+     }
+
+     // Find post by ID
+     const post = await prisma.post.findUnique({
+        where:{id},
+        include:{
+            author:{
+                select:{
+                    id:true,
+                    username:true,
+                    email:true,
+                    createdAt:true
+                }
+            }
+        }
+     });
+
+
+     if(!post) {
+        return res.status(404).json({
+            error:"Post not found"
+        });
+     }
+
+     res.status(200).json({
+        message:"Post retrieved successfully",
+        post
+     })
+
+   } catch (error) {
+    console.log("Get post by ID error: ", error)
+
+    // Prisma error
+    if(error instanceof Prisma.PrismaClientKnownRequestError){
+        if(error.code ==="P2023"){
+            return res.status(400).json({
+                error:"Invalid post ID format"
+            });
+        }
+
+    }
+    
+    res.status(500).json({
+        error:"Server Error"
+    });
+    
+   }
 };
 
 // Update post (sadece yazı sahibi)
