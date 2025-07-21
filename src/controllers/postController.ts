@@ -69,8 +69,62 @@ export const createPost = async (req: AuthRequest, res: Response) => {
 
 // Get all posts (public - herkes görebilir)
 export const getAllPosts = async (req: Request, res: Response) => {
-    // Burayı sonraki adımda dolduracağız
-    res.json({ message: "Get all posts function - henüz boş" });
+   try {
+     // Query parameters(for pages)
+     const page = parseInt(req.query.page as string) || 1;
+     const limit = parseInt(req.query.limit as string) || 10;
+     const skip = (page-1)*limit;
+
+     // Get published posts with author info
+     const posts = await prisma.post.findMany({
+        where:{
+            published:true // only published articles/posts
+        }, include:{
+            author:{
+                select:{
+                    id:true,
+                    username:true,
+                    email:true
+                }
+            }
+        },orderBy:{
+            createdAt:"desc" // newest to the top
+        },
+        skip:skip, // for pages
+        take:limit // for pages
+     });
+
+     // Total count (total post number)
+     const totalPosts = await prisma.post.count({
+        where:{
+            published:true
+        }
+     });
+
+     // Pagination info
+     const totalPages = Math.ceil(totalPosts/limit);
+     const hasNextPage = page<totalPages;
+     const hasPreviousPage = page>1;
+     
+     res.status(200).json({
+        message:"Posts retrieved successfully",
+        posts,
+        pagination:{
+            currentPage:page,
+            totalPages,
+            totalPosts,
+            postsPerPage: limit,
+            hasNextPage,
+            hasPreviousPage
+        }
+     });
+
+   } catch (error) {
+    console.error("Gel all posts error: ", error);
+    res.status(500).json({
+        error: "Server Error"
+    }); 
+   }
 };
 
 // Get single post by ID (public)
